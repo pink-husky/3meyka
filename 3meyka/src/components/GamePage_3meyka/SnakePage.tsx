@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { doc, getDoc, updateDoc, getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { CrownIcon } from 'lucide-react';
+import Leaderboard from '../Leaderboard/Leaderboard.tsx';
 
 interface SnakeSegment {
     x: number;
@@ -16,11 +20,55 @@ const SnakePage: React.FC<{ onExit: () => void }> = ({ onExit }) => {
     const [food, setFood] = useState<SnakeSegment>({ x: 15, y: 15 });
     const [direction, setDirection] = useState<'RIGHT' | 'LEFT' | 'UP' | 'DOWN'>('RIGHT');
     const [score, setScore] = useState(0);
+    const [highScore, setHighScore] = useState(0);
     const [isGameOver, setIsGameOver] = useState(false);
 
     const directionRef = useRef(direction);
     const snakeRef = useRef(snake);
+    // Firebase references
+    const auth = getAuth();
+    const db = getFirestore();
+    // Fetch high score on component mount
+    useEffect(() => {
+        const fetchHighScore = async () => {
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
 
+                    if (userDoc.exists()) {
+                        const currentHighScore = userDoc.data().snakeHighScore || 0;
+                        setHighScore(currentHighScore);
+                    }
+                } catch (error) {
+                    console.error("Error fetching high score:", error);
+                }
+            }
+        };
+
+        fetchHighScore();
+    }, [auth, db]);
+
+    // Update high score in Firestore when game ends
+    useEffect(() => {
+        const updateHighScore = async () => {
+            const user = auth.currentUser;
+            if (user && isGameOver && score > highScore) {
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    await updateDoc(userDocRef, {
+                        snakeHighScore: score
+                    });
+                    setHighScore(score);
+                } catch (error) {
+                    console.error("Error updating high score:", error);
+                }
+            }
+        };
+
+        updateHighScore();
+    }, [isGameOver, score, highScore, auth, db]);
     // Generate food that doesn't overlap with snake
     const generateFood = useCallback((): SnakeSegment => {
         let newFood: SnakeSegment;
@@ -149,7 +197,16 @@ const SnakePage: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             <div className="bg-black bg-opacity-50 text-green-500 rounded-lg p-8 w-[600px] h-[600px] backdrop-blur-sm border border-green-800 flex flex-col">
                 <div className="flex justify-between mb-4">
                     <h2 className="text-2xl">Snake Game</h2>
-                    <div className="flex space-x-4">
+                    <div className="flex space-x-4 items-center">
+                        {/* High Score Display with Crown Icon */}
+                        <div className="flex items-center">
+                            <CrownIcon
+                                className="mr-2 text-yellow-400"
+                                size={20}
+                                fill="currentColor"
+                            />
+                            <span className="text-yellow-300">High Score: {highScore}</span>
+                        </div>
                         <span>Score: {score}</span>
                         <button
                             onClick={onExit}
@@ -215,7 +272,9 @@ const SnakePage: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                     </div>
                 )}
             </div>
+            <Leaderboard />
         </div>
+
     );
 };
 

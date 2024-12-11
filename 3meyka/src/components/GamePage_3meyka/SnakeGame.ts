@@ -42,7 +42,6 @@ class SnakeGame {
     moveSnake(state: SnakeGameState): SnakeGameState {
         // If game is already over, return the current state
         if (state.gameOver) return state;
-        console.log("grid_size = " + this.gridSize)
         const newState = { ...state };
         const head = { ...newState.snake[0] };
 
@@ -75,6 +74,7 @@ class SnakeGame {
         // If collision occurs, set game over
         if (borderCollision || selfCollision) {
             newState.gameOver = true;
+            console.log("grid_size = " + this.gridSize) // added just to resolve TS warning
             return newState;
         }
 

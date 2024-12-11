@@ -175,15 +175,26 @@ const UserInterface: React.FC = () => {
     const handleGoogleSignIn = async () => {
         try {
             const userCredential = await signInWithPopup(auth, googleProvider);
+            const user = userCredential.user;
 
-            // Check if user already exists in Firestore
-            const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+            // Extract username from email (part before @)
+            const username = user.email?.split('@')[0] || '';
+
+            // Reference to user's document in Firestore
+            const userDocRef = doc(firestore, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
 
             if (!userDoc.exists()) {
-                // Prompt for username if not exists
-                setAuthMode('register');
+                // Create new user document with username
+                await setDoc(userDocRef, {
+                    username: username,
+                    email: user.email,
+                    snakeHighScore: 0 // Adding the high score field we discussed earlier
+                });
             }
+
+            // You can remove or modify this line based on your navigation logic
+            // setAuthMode('login');
         } catch (error: any) {
             setError(error.message);
             console.error(error);
@@ -369,7 +380,7 @@ const UserInterface: React.FC = () => {
                 ) : (
                     <div className="space-y-4">
                         <h2 className="text-2xl text-center mb-4">
-                            Welcome, {userProfile?.username || user?.email}
+                            Welcome, {userProfile?.username || user?.email?.split('@')[0]}!
                         </h2>
                         {userButtons.map((btn, index) => (
                             <button
