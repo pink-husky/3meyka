@@ -17,6 +17,7 @@ import {
     getDocs
 } from 'firebase/firestore';
 import { auth, googleProvider, firestore } from '../../firebase.ts';
+import SnakePage from '../GamePage_3meyka/SnakePage.tsx';
 
 interface UserProfile {
     email: string;
@@ -33,6 +34,7 @@ const UserInterface: React.FC = () => {
         username: ''
     });
     const [error, setError] = useState<string | null>(null);
+    const [isPlayingSnake, setIsPlayingSnake] = useState(false);
 
     // Listen for authentication state changes
     useEffect(() => {
@@ -203,10 +205,22 @@ const UserInterface: React.FC = () => {
             action: () => setAuthMode('update-username')
         },
         {
+            label: 'Play Snake',
+            action: () => setIsPlayingSnake(true)
+        },
+        {
             label: 'Logout',
             action: handleLogout
         }
     ];
+    // If playing snake, render snake game
+    if (isPlayingSnake) {
+        return (
+            <SnakePage
+                onExit={() => setIsPlayingSnake(false)}
+            />
+        );
+    }
 
     const toggleAuthMode = () => {
         setAuthMode(prev => prev === 'register' ? 'login' : 'register');
